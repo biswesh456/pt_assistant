@@ -1,0 +1,18 @@
+dist: trusty
+sudo: false
+addons:
+  apt:
+    packages:
+    - git-svn
+script:
+- |
+  git config --global credential.helper store
+  echo "https://${GH_USERNAME}:${GH_TOKEN}@github.com" > $HOME/.git-credentials
+  set -x
+  git fetch origin trunk:trunk
+  git checkout trunk
+  git svn init https://svn.openstreetmap.org/applications/editors/josm/plugins/pt_assistant
+  mkdir -p .git/refs/remotes/
+  git rev-parse trunk > .git/refs/remotes/git-svn
+  git svn fetch
+  git push origin git-svn:trunk
