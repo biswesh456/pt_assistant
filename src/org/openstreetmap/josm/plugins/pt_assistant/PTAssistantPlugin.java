@@ -11,12 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-import javax.swing.SwingUtilities;
 
-import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Relation;
+import org.openstreetmap.josm.data.osm.event.SelectionEventManager;
 import org.openstreetmap.josm.data.validation.OsmValidator;
 import org.openstreetmap.josm.gui.IconToggleButton;
 import org.openstreetmap.josm.gui.MainApplication;
@@ -31,15 +29,12 @@ import org.openstreetmap.josm.plugins.pt_assistant.actions.CreatePlatformNodeThr
 import org.openstreetmap.josm.plugins.pt_assistant.actions.CreatePlatformShortcutAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.DoubleSplitAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.EdgeSelectionAction;
-import org.openstreetmap.josm.plugins.pt_assistant.actions.EditHighlightedRelationsAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.ExtractPlatformNodeAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.PTWizardAction;
-import org.openstreetmap.josm.plugins.pt_assistant.actions.RepeatLastFixAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.SortPTRouteMembersAction;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.SplitRoundaboutAction;
 import org.openstreetmap.josm.plugins.pt_assistant.data.PTRouteSegment;
 import org.openstreetmap.josm.plugins.pt_assistant.gui.PTAssistantLayerManager;
-import org.openstreetmap.josm.plugins.pt_assistant.gui.PTAssistantPreferenceSetting;
 import org.openstreetmap.josm.plugins.pt_assistant.validation.BicycleFootRouteValidatorTest;
 import org.openstreetmap.josm.plugins.pt_assistant.validation.PTAssistantValidatorTest;
 
@@ -61,10 +56,10 @@ public class PTAssistantPlugin extends Plugin {
 	private static List<Relation> highlightedRelations = new ArrayList<>();
 
 	/* item of the Tools menu for repeating the last fix */
-	private static JMenuItem repeatLastFixMenu;
+//	private static JMenuItem repeatLastFixMenu;
 
 	/* edit the currently highlighted relations */
-	private static JMenuItem editHighlightedRelationsMenu;
+//	private static JMenuItem editHighlightedRelationsMenu;
 
 	/**
 	 * Main constructor.
@@ -80,11 +75,12 @@ public class PTAssistantPlugin extends Plugin {
 		MainMenu menu = MainApplication.getMenu();
 		JMenu PublicTransportMenu = menu.addMenu("File", trc("menu", "Public Transport"), KeyEvent.VK_P, 5, ht("/Menu/Public Transport"));
 
-		DataSet.addSelectionListener(PTAssistantLayerManager.PTLM);
+		SelectionEventManager.getInstance().addSelectionListener(PTAssistantLayerManager.PTLM);
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addPropertyChangeListener(PTAssistantLayerManager.PTLM);
 		addToPTAssistantmenu(PublicTransportMenu);
 		initialiseWizard();
 		initialiseShorcutsForCreatePlatformNode();
+//		addButtonsToRelationEditor();
 	}
 
 	/**
@@ -93,14 +89,14 @@ public class PTAssistantPlugin extends Plugin {
 	@Override
 	public void mapFrameInitialized(MapFrame oldFrame, MapFrame newFrame) {
 		if (oldFrame == null && newFrame != null) {
-			repeatLastFixMenu.setEnabled(false);
-			editHighlightedRelationsMenu.setEnabled(false);
+//			repeatLastFixMenu.setEnabled(false);
+//			editHighlightedRelationsMenu.setEnabled(false);
 			MainApplication.getMap().addMapMode(new IconToggleButton(new AddStopPositionAction()));
 			MainApplication.getMap().addMapMode(new IconToggleButton(new EdgeSelectionAction()));
 			MainApplication.getMap().addMapMode(new IconToggleButton(new DoubleSplitAction()));
 		} else if (oldFrame != null && newFrame == null) {
-			repeatLastFixMenu.setEnabled(false);
-			editHighlightedRelationsMenu.setEnabled(false);
+//			repeatLastFixMenu.setEnabled(false);
+//			editHighlightedRelationsMenu.setEnabled(false);
 		}
 	}
 
@@ -109,7 +105,7 @@ public class PTAssistantPlugin extends Plugin {
 	 */
 	@Override
 	public PreferenceSetting getPreferenceSetting() {
-		return new PTAssistantPreferenceSetting();
+		return new PTAssistantPluginPreferences();
 	}
 
 	public static PTRouteSegment getLastFix() {
@@ -124,7 +120,7 @@ public class PTAssistantPlugin extends Plugin {
 	 */
 	public static void setLastFix(PTRouteSegment segment) {
 		lastFix = segment;
-		SwingUtilities.invokeLater(() -> repeatLastFixMenu.setEnabled(segment != null));
+//		SwingUtilities.invokeLater(() -> repeatLastFixMenu.setEnabled(segment != null));
 	}
 
 	/**
@@ -143,21 +139,21 @@ public class PTAssistantPlugin extends Plugin {
 
 	public static void addHighlightedRelation(Relation highlightedRelation) {
 		highlightedRelations.add(highlightedRelation);
-		if (!editHighlightedRelationsMenu.isEnabled()) {
-			SwingUtilities.invokeLater(() -> editHighlightedRelationsMenu.setEnabled(true));
-		}
+//		if (!editHighlightedRelationsMenu.isEnabled()) {
+//			SwingUtilities.invokeLater(() -> editHighlightedRelationsMenu.setEnabled(true));
+//		}
 	}
 
 	public static void clearHighlightedRelations() {
 		highlightedRelations.clear();
-		SwingUtilities.invokeLater(() -> editHighlightedRelationsMenu.setEnabled(false));
+//		SwingUtilities.invokeLater(() -> editHighlightedRelationsMenu.setEnabled(false));
 	}
 
 	private void addToPTAssistantmenu(JMenu PublicTransportMenu) {
-		RepeatLastFixAction repeatLastFixAction = new RepeatLastFixAction();
-		EditHighlightedRelationsAction editHighlightedRelationsAction = new EditHighlightedRelationsAction();
-		repeatLastFixMenu = MainMenu.add(PublicTransportMenu, repeatLastFixAction);
-		editHighlightedRelationsMenu = MainMenu.add(PublicTransportMenu, editHighlightedRelationsAction);
+//		RepeatLastFixAction repeatLastFixAction = new RepeatLastFixAction();
+//		EditHighlightedRelationsAction editHighlightedRelationsAction = new EditHighlightedRelationsAction();
+//		repeatLastFixMenu = MainMenu.add(PublicTransportMenu, repeatLastFixAction);
+//		editHighlightedRelationsMenu = MainMenu.add(PublicTransportMenu, editHighlightedRelationsAction);
 		MainMenu.add(PublicTransportMenu, new SplitRoundaboutAction());
 		MainMenu.add(PublicTransportMenu, new CreatePlatformNodeAction());
 		MainMenu.add(PublicTransportMenu, new SortPTRouteMembersAction());
@@ -177,4 +173,14 @@ public class PTAssistantPlugin extends Plugin {
 		CreatePlatformNodeThroughReplaceAction shortcut2 = new CreatePlatformNodeThroughReplaceAction();
 		ExtractPlatformNodeAction shortcut3 = new ExtractPlatformNodeAction();
 	}
+
+//	private void addButtonsToRelationEditor() {
+//
+//		IRelationEditorActionGroup group = new IRelationEditorActionGroup() {
+//			@Override
+//			public List<AbstractRelationEditorAction> getActions(IRelationEditorActionAccess editorAccess) {
+//				return Arrays.asList(new MendRelationAction(editorAccess));
+//			}};
+//		RelationEditorHooks.addActionsToSelectio(group);
+//	}
 }
