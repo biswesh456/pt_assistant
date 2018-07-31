@@ -28,6 +28,7 @@ import org.openstreetmap.josm.data.validation.TestError;
 import org.openstreetmap.josm.data.validation.TestError.Builder;
 import org.openstreetmap.josm.gui.progress.ProgressMonitor;
 import org.openstreetmap.josm.plugins.pt_assistant.PTAssistantPlugin;
+import org.openstreetmap.josm.plugins.pt_assistant.PTAssistantPluginPreferences;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.FixTask;
 import org.openstreetmap.josm.plugins.pt_assistant.actions.IncompleteMembersDownloadThread;
 import org.openstreetmap.josm.plugins.pt_assistant.data.PTRouteDataManager;
@@ -62,6 +63,7 @@ public class PTAssistantValidatorTest extends Test {
     public static final int ERROR_CODE_STOP_AREA_NO_STOPS = 3762;
     public static final int ERROR_CODE_STOP_AREA_NO_PLATFORM = 3763;
     public static final int ERROR_CODE_STOP_AREA_COMPARE_RELATIONS = 3764;
+    public static final int ERROR_CODE_ROUTE_REF = 3765;
 
     public PTAssistantValidatorTest() {
         super(tr("Public Transport Assistant tests"),
@@ -70,7 +72,6 @@ public class PTAssistantValidatorTest extends Test {
 
     @Override
     public void visit(Node n) {
-
         if (n.isIncomplete()) {
             return;
         }
@@ -83,11 +84,11 @@ public class PTAssistantValidatorTest extends Test {
             // check if stop positions are on a way:
             nodeChecker.performSolitaryStopPositionTest();
 
-            if (Main.pref.getBoolean("pt_assistant.stop-area-tests", false) == true) {
+            if (PTAssistantPluginPreferences.STOP_AREA_TEST.get()) {
                 // check if stop positions are in any stop_area relation:
                 nodeChecker.performNodePartOfStopAreaTest();
             }
-
+            nodeChecker.performRouteRefMatchingTest(n);
         }
 
         // select only platforms
@@ -96,11 +97,11 @@ public class PTAssistantValidatorTest extends Test {
             // check that platforms are not part of any way:
             nodeChecker.performPlatformPartOfWayTest();
 
-            if (Main.pref.getBoolean("pt_assistant.stop-area-tests", false) == true) {
+            if (PTAssistantPluginPreferences.STOP_AREA_TEST.get()) {
                 // check if platforms are in any stop_area relation:
                 nodeChecker.performNodePartOfStopAreaTest();
             }
-
+            nodeChecker.performRouteRefMatchingTest(n);
         }
 
         this.errors.addAll(nodeChecker.getErrors());
@@ -109,7 +110,6 @@ public class PTAssistantValidatorTest extends Test {
 
     @Override
     public void visit(Relation r) {
-
         // Download incomplete members. If the download does not work, return
         // and do not do any testing.
         if (r.hasIncompleteMembers()) {
@@ -125,7 +125,7 @@ public class PTAssistantValidatorTest extends Test {
         }
 
         // Do some testing on stop area relations
-        if (Main.pref.getBoolean("pt_assistant.stop-area-tests", false) == true && StopUtils.isStopArea(r)) {
+        if (PTAssistantPluginPreferences.STOP_AREA_TEST.get() && StopUtils.isStopArea(r)) {
 
             StopChecker stopChecker = new StopChecker(r, this);
 
@@ -360,6 +360,7 @@ public class PTAssistantValidatorTest extends Test {
             routeChecker.performFirstLastWayStopTest();
         }
         routeChecker.performSortingTest();
+
         List<TestError> routeCheckerErrors = routeChecker.getErrors();
 
         SegmentChecker segmentChecker = new SegmentChecker(r, this);

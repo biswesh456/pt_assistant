@@ -7,12 +7,16 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.openstreetmap.josm.data.osm.Node;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
@@ -28,6 +32,7 @@ import org.openstreetmap.josm.gui.layer.validation.PaintVisitor;
 import org.openstreetmap.josm.plugins.pt_assistant.data.PTStop;
 import org.openstreetmap.josm.plugins.pt_assistant.data.PTWay;
 import org.openstreetmap.josm.plugins.pt_assistant.utils.RouteUtils;
+import org.openstreetmap.josm.tools.I18n;
 import org.openstreetmap.josm.tools.Logging;
 import org.openstreetmap.josm.tools.Pair;
 
@@ -40,6 +45,8 @@ import org.openstreetmap.josm.tools.Pair;
 public class PTAssistantPaintVisitor extends PaintVisitor {
 
 	private static final String Node = null;
+	private final static Set<String> PUBLIC_TRANSPORT_NODE_ROLES = new HashSet<>(Arrays.asList("stop",
+			"stop_entry_only", "stop_exit_only", "platform", "platform_entry_only", "platform_exit_only"));
 	/** The graphics */
 	private final Graphics g;
 	/** The MapView */
@@ -92,44 +99,60 @@ public class PTAssistantPaintVisitor extends PaintVisitor {
 			}
 		}
 
+		// show refs for all the relations in the layer
+		showRefs(r);
+	}
+
+	private void showRefs(Relation r) {
 		// in the end, draw labels:
 		HashMap<Long, String> stopOrderMap = new HashMap<>();
 		int stopCount = 1;
 
 		for (RelationMember rm : r.getMembers()) {
-			if (PTStop.isPTStop(rm) || (rm.getMember().isIncomplete() && (rm.isNode() || rm.hasRole("stop")
-					|| rm.hasRole("stop_entry_only") || rm.hasRole("stop_exit_only") || rm.hasRole("platform")
-					|| rm.hasRole("platform_entry_only") || rm.hasRole("platform_exit_only")))) {
+			if (PTStop.isPTStop(rm)
+					|| (rm.getMember().isIncomplete() && (rm.isNode() || rm.hasRole("PUBLIC_TRANSPORT_NODE_ROLES")))) {
 
 				StringBuilder sb = new StringBuilder();
 
-				if (stopOrderMap.containsKey(rm.getUniqueId())) {
-					sb.append(stopOrderMap.get(rm.getUniqueId())).append(";").append(stopCount);
-				} else {
-					if (r.hasKey("ref")) {
-						sb.append(r.get("ref"));
-					} else if (r.hasKey("name")) {
-						sb.append(r.get("name"));
-					} else {
-						sb.append("NA");
-					}
-					sb.append(" - ").append(stopCount);
+				final Integer innerCount = new Integer(stopCount);
+				stopOrderMap.computeIfPresent(rm.getUniqueId(),
+						(x, y) -> (sb.append(y).append(";").append(innerCount)).toString());
+				stopOrderMap.computeIfAbsent(rm.getUniqueId(), y -> (sb
+						.append(r.hasKey("ref") ? r.get("ref") : (r.hasKey("name") ? r.get("name") : I18n.tr("NA")))
+						.append("-").append(innerCount)).toString());
+
+				if (PTStop.isPTStopPosition(rm)) {
+					drawStopLabelWithRefsOfRoutes(rm.getMember(), sb.toString(), false);
+				} else if (PTStop.isPTPlatform(rm)) {
+					drawStopLabelWithRefsOfRoutes(rm.getMember(), sb.toString(), true);
 				}
 
-				stopOrderMap.put(rm.getUniqueId(), sb.toString());
-				try {
-					if (PTStop.isPTStopPosition(rm))
-						drawStopLabel(rm.getMember(), sb.toString(), false);
-					else if (PTStop.isPTPlatform(rm))
-						drawStopLabel(rm.getMember(), sb.toString(), true);
-				} catch (NullPointerException ex) {
-					// do nothing
-					Logging.trace(ex);
-				}
 				stopCount++;
 			}
 		}
 
+		Collection<Relation> allRelations = null;
+		if (MainApplication.getLayerManager().getEditLayer() != null
+				&& MainApplication.getLayerManager().getEditLayer().getDataSet() != null)
+			allRelations = MainApplication.getLayerManager().getEditLayer().getDataSet().getRelations();
+		Double scale = MainApplication.getMap().mapView.getScale();
+
+		if (allRelations != null && scale < 0.7) {
+			for (Relation rel : allRelations) {
+				for (RelationMember rm : rel.getMembers()) {
+					if (PTStop.isPTStop(rm) || (rm.getMember().isIncomplete()
+							&& (rm.isNode() || rm.hasRole("PUBLIC_TRANSPORT_NODE_ROLES")))) {
+
+						if (PTStop.isPTStopPosition(rm)) {
+							drawStopLabel(rm.getMember(), false);
+						} else if (PTStop.isPTPlatform(rm)) {
+							drawStopLabel(rm.getMember(), true);
+						}
+					}
+
+				}
+			}
+		}
 	}
 
 	private void drawCycleRoute(Relation r) {
@@ -414,28 +437,15 @@ public class PTAssistantPaintVisitor extends PaintVisitor {
 	 * @param label
 	 *            label
 	 */
-	protected void drawStopLabel(OsmPrimitive primitive, String label, Boolean platform) {
-
+	protected void drawStopLabel(OsmPrimitive primitive, Boolean platform) {
 		// find the point to which the stop visualization will be linked:
 		Node n = new Node(primitive.getBBox().getCenter());
 
 		Point p = mv.getPoint(n);
 
-		if (label != null && !label.equals("")) {
-			Font stringFont = new Font("SansSerif", Font.PLAIN, 24);
-			if (platform) {
-				g.setColor(new Color(255, 255, 102));
-				g.setFont(stringFont);
-				g.drawString(label, p.x + 20, p.y - 40);
-			} else {
-				g.setColor(Color.WHITE);
-				g.setFont(stringFont);
-				g.drawString(label, p.x + 20, p.y - 20);
-			}
-		}
-
 		// draw the ref values of all parent routes:
 		List<String> parentsLabelList = new ArrayList<>();
+
 		for (OsmPrimitive parent : primitive.getReferrers()) {
 			if (parent.getType().equals(OsmPrimitiveType.RELATION)) {
 				Relation relation = (Relation) parent;
@@ -467,12 +477,32 @@ public class PTAssistantPaintVisitor extends PaintVisitor {
 			// remove the last semicolon:
 			String parentsLabel = sb.substring(0, sb.length() - 1);
 
-			g.setColor(new Color(255, 20, 147));
+			g.setColor(new Color(192, 41, 86));
 			Font parentLabelFont = new Font("SansSerif", Font.ITALIC, 20);
 			g.setFont(parentLabelFont);
 			g.drawString(parentsLabel, p.x + 20, p.y + 20);
 		}
 
+	}
+
+	protected void drawStopLabelWithRefsOfRoutes(OsmPrimitive primitive, String label, Boolean platform) {
+		// find the point to which the stop visualization will be linked:
+		Node n = new Node(primitive.getBBox().getCenter());
+
+		Point p = mv.getPoint(n);
+
+		if (label != null && !label.equals("")) {
+			Font stringFont = new Font("SansSerif", Font.PLAIN, 24);
+			if (platform) {
+				g.setColor(new Color(255, 255, 102));
+				g.setFont(stringFont);
+				g.drawString(label, p.x + 20, p.y - 40);
+			} else {
+				g.setColor(Color.WHITE);
+				g.setFont(stringFont);
+				g.drawString(label, p.x + 20, p.y - 20);
+			}
+		}
 	}
 
 	/**
@@ -481,7 +511,7 @@ public class PTAssistantPaintVisitor extends PaintVisitor {
 	 * @author darya
 	 *
 	 */
-	private static class RefTagComparator implements Comparator<String> {
+	public static class RefTagComparator implements Comparator<String> {
 
 		@Override
 		public int compare(String s1, String s2) {
