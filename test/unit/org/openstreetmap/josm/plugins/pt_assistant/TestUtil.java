@@ -10,11 +10,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.data.Preferences;
 import org.openstreetmap.josm.data.preferences.JosmBaseDirectories;
+import org.openstreetmap.josm.data.projection.ProjectionRegistry;
 import org.openstreetmap.josm.data.projection.Projections;
 import org.openstreetmap.josm.spi.preferences.Config;
 import org.openstreetmap.josm.tools.I18n;
+import org.openstreetmap.josm.tools.PlatformManager;
 
 /**
  *
@@ -30,23 +32,20 @@ public final class TestUtil {
   }
 
   /**
-   * Initializes the {@link Main} class of JOSM and the mapillary plugin with
+   * Initializes the main class of JOSM and the mapillary plugin with
    * the preferences from test/data/preferences.
-   *
-   * That is needed e.g. to use {@link MapillaryLayer#getInstance()}
    */
   public static synchronized void initPlugin() {
     if (!isInitialized) {
       System.setProperty("josm.home", "test/data/preferences");
-      Main.pref.enableSaveOnPut(false);
+      Preferences.main().enableSaveOnPut(false);
       I18n.init();
-      Main.determinePlatformHook();
-      Main.platform.preStartupHook();
-      Main.pref.init(false);
-      Config.setPreferencesInstance(Main.pref);
+      PlatformManager.getPlatform().preStartupHook();
+      Preferences.main().init(false);
+      Config.setPreferencesInstance(Preferences.main());
       Config.setBaseDirectoriesProvider(JosmBaseDirectories.getInstance());
-      I18n.set(Main.pref.get("language", "en"));
-      Main.setProjection(Projections.getProjectionByCode("EPSG:3857")); // Mercator
+      I18n.set(Config.getPref().get("language", "en"));
+      ProjectionRegistry.setProjection(Projections.getProjectionByCode("EPSG:3857")); // Mercator
       isInitialized = true;
     }
   }
@@ -65,7 +64,7 @@ public final class TestUtil {
       assertEquals(1, c.getDeclaredConstructors().length);
       final Constructor<?> constructor = c.getDeclaredConstructors()[0];
       // constructor has to be private
-      assertTrue(!constructor.isAccessible() && Modifier.isPrivate(constructor.getModifiers()));
+      assertTrue(Modifier.isPrivate(constructor.getModifiers()));
       constructor.setAccessible(true);
       // Call private constructor for code coverage
       constructor.newInstance();

@@ -11,9 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.openstreetmap.josm.Main;
 import org.openstreetmap.josm.command.SplitWayCommand;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.Node;
@@ -26,18 +24,13 @@ import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 import org.openstreetmap.josm.io.IllegalDataException;
 import org.openstreetmap.josm.io.OsmReader;
 import org.openstreetmap.josm.plugins.pt_assistant.AbstractTest;
-import org.openstreetmap.josm.testutils.JOSMTestRules;
+import org.openstreetmap.josm.plugins.pt_assistant.utils.PTProperties;
 
 /**
- * Unit tests of {@link SplitRoundabout}.
+ * Unit tests of {@link SplitRoundaboutAction}.
  */
 public class SplitRoundaboutTest extends AbstractTest {
 
-    /**
-     * Setup test.
-     */
-    @Rule
-    public JOSMTestRules rules = new JOSMTestRules().preferences().platform();
 
     private DataSet ds, ds1, ds2;
     private OsmDataLayer layer;
@@ -49,7 +42,7 @@ public class SplitRoundaboutTest extends AbstractTest {
         layer = new OsmDataLayer(ds, OsmDataLayer.createNewName(), null);
         MainApplication.getLayerManager().addLayer(layer);
 
-        Main.pref.putBoolean("pt_assistant.roundabout-splitter.alignalways", true);
+        PTProperties.ROUNDABOUT_SPLITTER_ALIGN_ALWAYS.put(true);
         action = new SplitRoundaboutAction();
         r1 = (Way) ds.getPrimitiveById(new SimplePrimitiveId(293302077L, OsmPrimitiveType.WAY));
         r2 = (Way) ds.getPrimitiveById(new SimplePrimitiveId(205833435L, OsmPrimitiveType.WAY));
@@ -62,7 +55,7 @@ public class SplitRoundaboutTest extends AbstractTest {
         layer = new OsmDataLayer(ds1, OsmDataLayer.createNewName(), null);
         MainApplication.getLayerManager().addLayer(layer);
 
-        Main.pref.putBoolean("pt_assistant.roundabout-splitter.alignalways", true);
+        PTProperties.ROUNDABOUT_SPLITTER_ALIGN_ALWAYS.put(true);
         action = new SplitRoundaboutAction();
         r5 = (Way) ds1.getPrimitiveById(new SimplePrimitiveId(97417157, OsmPrimitiveType.WAY));
     }
